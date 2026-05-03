@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hardware Wallets · Precio vs Año de Lanzamiento · BTCenEspañol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #FAAD2D;
+    --gold-soft: #f5c466;
+    --purple: #641BCC;
+    --purple-deep: #2a0a5a;
+    --purple-glow: #8b3df0;
+    --bg: #0d0420;
+    --bg-grad-1: #1a0a3a;
+    --bg-grad-2: #0d0420;
+    --text: #f4eaff;
+    --text-dim: #a08bc4;
+    --line: rgba(250, 173, 45, 0.12);
+    --btc: #FAAD2D;
+    --web3: #1ed87a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: radial-gradient(ellipse at top, var(--bg-grad-1) 0%, var(--bg-grad-2) 70%);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(100, 27, 204, 0.25) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(250, 173, 45, 0.08) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wrap {
+    position: relative;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+    z-index: 1;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .title-block h1 {
+    font-size: clamp(22px, 3.2vw, 36px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  .title-block h1 .accent { color: var(--gold); }
+  .title-block .sub {
+    margin-top: 6px;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .brand {
+    text-align: right;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .brand strong { color: var(--gold); display: block; font-size: 14px; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .filter-group {
+    display: flex;
+    gap: 8px;
+    background: rgba(100, 27, 204, 0.15);
+    padding: 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(250, 173, 45, 0.15);
+  }
+  .filter-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .filter-btn:hover { color: var(--text); }
+  .filter-btn.active {
+    background: var(--gold);
+    color: var(--bg);
+  }
+  .filter-btn .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .dot.btc { background: var(--btc); }
+  .dot.web3 { background: var(--web3); }
+  .dot.both { background: linear-gradient(90deg, var(--btc) 50%, var(--web3) 50%); }
+  .legend {
+    margin-left: auto;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Chart */
+  .chart-container {
+    position: relative;
+    background: rgba(10, 4, 30, 0.5);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px 24px 16px 24px;
+    backdrop-filter: blur(8px);
+  }
+  .chart-axes {
+    position: relative;
+    width: 100%;
+    height: 600px;
+  }
+  .chart-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .grid-line { stroke: rgba(250, 173, 45, 0.08); stroke-width: 1; stroke-dasharray: 2 4; }
+  .axis-label {
+    fill: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .axis-title {
+    fill: var(--gold);
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .plot-area {
+    position: absolute;
+    pointer-events: none;
+  }
+  .wallet-dot {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 18px rgba(250, 173, 45, 0.4);
+    z-index: 2;
+  }
+  .wallet-dot:hover, .wallet-dot.active {
+    width: 26px;
+    height: 26px;
+    box-shadow: 0 0 0 3px var(--bg), 0 0 24px rgba(250, 173, 45, 0.8);
+    z-index: 5;
+  }
+  .wallet-dot.btc { background: var(--btc); }
+  .wallet-dot.web3 { background: var(--web3); }
+  .wallet-dot.both {
+    background: linear-gradient(135deg, var(--btc) 0%, var(--btc) 49%, var(--web3) 51%, var(--web3) 100%);
+  }
+  .wallet-dot.dimmed { opacity: 0.18; }
+  .wallet-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text);
+    text-align: center;
+    line-height: 1.2;
+    z-index: 1;
+    transition: opacity 0.25s ease;
+    white-space: nowrap;
+  }
+  .wallet-label .name { color: var(--gold); display: block; }
+  .wallet-label .price { color: var(--text-dim); font-size: 10px; font-family: 'JetBrains Mono', monospace; }
+  .wallet-label.dimmed { opacity: 0.2; }
+
+  /* Modal/Detail Card */
+  .detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 2, 15, 0.85);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+    animation: fadeIn 0.2s ease;
+  }
+  .detail-overlay.open { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .detail-card {
+    background: linear-gradient(160deg, #1a0a3a 0%, #0d0420 100%);
+    border: 1px solid var(--gold);
+    border-radius: 20px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 32px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(100, 27, 204, 0.5), 0 0 0 1px rgba(250, 173, 45, 0.2);
+    animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(250, 173, 45, 0.1);
+    border: 1px solid rgba(250, 173, 45, 0.3);
+    color: var(--gold);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .close-btn:hover { background: var(--gold); color: var(--bg); }
+  .detail-card .type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(250, 173, 45, 0.1);
+    border: 1px solid rgba(250, 173, 45, 0.3);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+  .detail-card h2 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .detail-card .maker {
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat {
+    background: rgba(100, 27, 204, 0.15);
+    border: 1px solid rgba(250, 173, 45, 0.1);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .stat .label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 4px;
+  }
+  .stat .value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .stat .value.price { color: var(--gold); font-size: 20px; font-weight: 800; }
+  .specs-list {
+    margin-bottom: 24px;
+  }
+  .specs-list h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 10px;
+  }
+  .specs-list ul {
+    list-style: none;
+  }
+  .specs-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(250, 173, 45, 0.08);
+    font-size: 14px;
+    color: var(--text);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .specs-list li::before {
+    content: '◆';
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+  .description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+  .buy-btn {
+    display: block;
+    width: 100%;
+    background: var(--gold);
+    color: var(--bg);
+    text-align: center;
+    padding: 14px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+  }
+  .buy-btn:hover {
+    background: var(--gold-soft);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(250, 173, 45, 0.3);
+  }
+
+  footer {
+    margin-top: 32px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  footer a { color: var(--gold); text-decoration: none; }
+
+  @media (max-width: 768px) {
+    .chart-axes { height: 500px; }
+    .wallet-label { font-size: 10px; }
+    .wallet-label .price { font-size: 9px; }
+    .controls { gap: 6px; }
+    .filter-btn { padding: 6px 10px; font-size: 11px; }
+    .legend { display: none; }
+    header { flex-direction: column; align-items: flex-start; }
+    .brand { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <h1>Hardware <span class="accent">Wallets</span><br>Precio vs. Año de Lanzamiento</h1>
+      <div class="sub">Toca un punto para ver detalles · Datos: May 2026</div>
+    </div>
+    <div class="brand">
+      <strong>@btcenespanol</strong>
+      v15.2026.05 · educación bitcoin
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="filter-group" role="tablist">
+      <button class="filter-btn active" data-filter="all">Todas</button>
+      <button class="filter-btn" data-filter="btc"><span class="dot btc"></span>Solo BTC</button>
+      <button class="filter-btn" data-filter="web3"><span class="dot web3"></span>Web 3</button>
+      <button class="filter-btn" data-filter="both"><span class="dot both"></span>Ambas</button>
+    </div>
+    <div class="legend">Eje X: año · Eje Y: precio €/USD</div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-axes" id="chartArea">
+      <svg class="chart-svg" id="gridSvg" preserveAspectRatio="none"></svg>
+      <div class="plot-area" id="plotArea"></div>
+    </div>
+  </div>
+
+  <footer>
+    Una guía de <a href="https://www.btcenespanol.com" target="_blank" rel="noopener">BTCenEspañol</a> · Precios actualizados a Mayo 2026 · No constituye asesoramiento financiero
+  </footer>
+</div>
+
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-card" id="detailCard">
+    <button class="close-btn" id="closeBtn" aria-label="Cerrar">×</button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<script>
+// Wallet data — prices verified May 2026
+const wallets = [
+  {
+    name: "Bitbox02",
+    maker: "Shift Crypto (Suiza)",
+    year: 2019,
+    price: 149,
+    currency: "€",
+    type: "both",
+    typeLabel: "Web3 o Solo BTC",
+    description: "Hardware wallet suiza de código abierto. Disponible en versión Multi-edition (Web3) o Bitcoin-only. Conexión USB-C, micro-SD para backup, secure chip.",
+    specs: ["Código abierto", "USB-C", "Versión Bitcoin-only", "Backup vía micro-SD", "Compatible con apps de terceros"],
+    buyUrl: "https://shiftcrypto.ch/bitbox02/"
+  },
+  {
+    name: "Ledger Nano X",
+    maker: "Ledger (Francia)",
+    year: 2019,
+    price: 149,
+    currency: "€",
+    type: "web3",
+    typeLabel: "Web 3",
+    description: "El más popular de Ledger. Bluetooth para uso móvil, batería integrada, soporta 5,500+ activos. Closed-source con secure element CC EAL5+.",
+    specs: ["Bluetooth + USB-C", "iOS y Android", "5,500+ activos", "Closed source", "Secure Element EAL5+"],
+    buyUrl: "https://shop.ledger.com/products/ledger-nano-x"
+  },
+  {
+    name: "Keevo",
+    maker: "Keevo (USA)",
+    year: 2019,
+    price: 299,
+    currency: "USD",
+    type: "web3",
+    typeLabel: "Web 3",
+    description: "Hardware wallet con autenticación biométrica (huella) y herencia integrada. Multi-factor recovery sin frase semilla tradicional.",
+    specs: ["Lector de huella", "Sistema de herencia", "Sin frase semilla tradicional", "Pantalla táctil"],
+    buyUrl: "https://keevowallet.com/"
+  },
+  {
+    name: "SeedSigner",
+    maker: "Open source (DIY)",
+    year: 2020,
+    price: 79,
+    currency: "EUR",
+    type: "btc",
+    typeLabel: "Solo BTC",
+    description: "Proyecto DIY 100% open source y air-gapped. Funciona vía QR codes con Raspberry Pi Zero. Sin almacenamiento permanente — la seed se introduce en cada uso.",
+    specs: ["100% air-gapped", "Open source", "Solo Bitcoin", "Sin almacenamiento de seed", "Comunicación por QR"],
+    buyUrl: "https://seedsigner.com/"
+  },
+  {
+    name: "Coldcard Mk4",
+    maker: "Coinkite (Canadá)",
+    year: 2021,
+    price: 157,
+    currency: "USD",
+    type: "btc",
+    typeLabel: "Solo BTC",
+    description: "El estándar de oro para bitcoiners avanzados. Solo Bitcoin, dual secure elements, opera air-gapped vía SD card o NFC. Multisig nativo.",
+    specs: ["Solo Bitcoin", "Air-gapped opcional", "Doble secure element", "Multisig PSBT", "MicroSD para firmar"],
+    buyUrl: "https://coldcard.com/"
+  },
+  {
+    name: "Foundation Passport",
+    maker: "Foundation Devices (USA)",
+    year: 2021,
+    price: 199,
+    currency: "USD",
+    type: "btc",
+    typeLabel: "Solo BTC",
+    description: "Air-gapped Bitcoin-only con cámara para escanear QRs. Diseño tipo teléfono retro, fabricación en EE.UU., supply chain verificada.",
+    specs: ["Air-gapped por QR", "Solo Bitcoin", "Fabricado en USA", "Pantalla a color", "Cámara integrada"],
+    buyUrl: "https://foundationdevices.com/passport/"
+  },
+  {
+    name: "Blockstream Jade",
+    maker: "Blockstream",
+    year: 2021,
+    price: 65,
+    currency: "USD",
+    type: "btc",
+    typeLabel: "Solo BTC",
+    description: "Económico, open source, pantalla a color y joystick. Soporta Bitcoin y Liquid Network. Modo virtual (sin secure element) o con SE externo.",
+    specs: ["Open source", "Bitcoin + Liquid", "Cámara para QR", "USB-C", "Económico"],
+    buyUrl: "https://store.blockstream.com/product/blockstream-jade/"
+  },
+  {
+    name: "Ledger Nano S Plus",
+    maker: "Ledger (Francia)",
+    year: 2022,
+    price: 79,
+    currency: "€",
+    type: "web3",
+    typeLabel: "Web 3",
+    description: "Versión económica de Ledger con USB-C y pantalla más grande que el S original. 5,500+ activos. Sin Bluetooth.",
+    specs: ["USB-C", "5,500+ activos", "Sin Bluetooth", "Secure Element EAL5+", "Closed source"],
+    buyUrl: "https://shop.ledger.com/products/ledger-nano-s-plus"
+  },
+  {
+    name: "Ngrave Zero",
+    maker: "Ngrave (Bélgica)",
+    year: 2022,
+    price: 398,
+    currency: "€",
+    type: "web3",
+    typeLabel: "Web 3",
+    description: "100% air-gapped, certificación EAL7 (la más alta del mercado). Pantalla táctil grande, comunicación solo por QR. Premium en seguridad.",
+    specs: ["EAL7 (máxima certificación)", "100% air-gapped", "Pantalla táctil grande", "Generación biométrica de seed", "Solo QR"],
+    buyUrl: "https://www.ngrave.io/"
+  },
+  {
+    name: "Keystone 3 Pro",
+    maker: "Keystone",
+    year: 2023,
+    price: 129,
+    currency: "USD",
+    type: "both",
+    typeLabel: "Web3 o Solo BTC",
+    description: "Air-gapped vía QR con triple secure element. Pantalla táctil de 4'', firmware open source para Bitcoin. Soporta múltiples cadenas.",
+    specs: ["Triple Secure Element", "Air-gapped por QR", "Pantalla táctil 4''", "Bitcoin-only firmware disponible", "Lector de huella"],
+    buyUrl: "https://keyst.one/"
+  },
+  {
+    name: "Trezor Safe 3",
+    maker: "Trezor / SatoshiLabs (Chequia)",
+    year: 2023,
+    price: 79,
+    currency: "€",
+    type: "web3",
+    typeLabel: "Web 3",
+    description: "Modelo entrada de Trezor con secure element EAL6+ añadido. Open source, USB-C, dos botones. Versión Bitcoin-only disponible.",
+    specs: ["Secure Element EAL6+", "Open source", "USB-C", "Versión Bitcoin-only", "8,000+ activos"],
+    buyUrl: "https://trezor.io/trezor-safe-3"
+  },
+  {
+    name: "Ledger Flex",
+    maker: "Ledger (Francia)",
+    year: 2024,
+    price: 249,
+    currency: "€/USD",
+    type: "web3",
+    typeLabel: "Web 3",
+    description: "Pantalla táctil E-Ink de 2.8'', NFC, Bluetooth y USB-C. Posición intermedia entre Nano y Stax. Trusted display directo desde el secure element.",
+    specs: ["Pantalla E-Ink 2.8''", "NFC + Bluetooth", "Trusted display", "Secure Element EAL6+", "Ledger Recovery Key incluida"],
+    buyUrl: "https://shop.ledger.com/products/ledger-flex"
+  },
+  {
+    name: "Trezor Safe 5",
+    maker: "Trezor / SatoshiLabs (Chequia)",
+    year: 2024,
+    price: 169,
+    currency: "€",
+    type: "web3",
+    typeLabel: "Web 3",
+    description: "Pantalla táctil a color de 1.54'', haptic feedback, secure element EAL6+. Open source, recuperación Shamir. Heredero del Model T.",
+    specs: ["Pantalla táctil color", "Haptic feedback", "Secure Element EAL6+", "Open source", "Shamir Backup"],
+    buyUrl: "https://trezor.io/trezor-safe-5"
+  },
+  {
+    name: "Bitkey",
+    maker: "Block (Jack Dorsey)",
+    year: 2024,
+    price: 150,
+    currency: "USD",
+    type: "btc",
+    typeLabel: "Solo BTC",
+    description: "Solo Bitcoin con multisig 2-de-3 de fábrica: tu móvil, el dispositivo y Block como respaldo. Lector de huella, sin frase semilla para el usuario.",
+    specs: ["Multisig 2-de-3 nativo", "Solo Bitcoin", "Lector de huella", "Sin seed phrase para el usuario", "App móvil obligatoria"],
+    buyUrl: "https://bitkey.world/"
+  },
+  {
+    name: "Foundation Passport Prime",
+    maker: "Foundation Devices (USA)",
+    year: 2025,
+    price: 299,
+    currency: "USD",
+    type: "btc",
+    typeLabel: "Solo BTC",
+    description: "Sucesor del Passport: pantalla más grande, mejor cámara, hardware actualizado. Air-gapped Bitcoin-only premium.",
+    specs: ["Air-gapped por QR", "Solo Bitcoin", "Pantalla mejorada", "Fabricado en USA", "Sucesor del Passport"],
+    buyUrl: "https://foundation.xyz/passport-prime"
+  },
+  {
+    name: "Coldcard Q",
+    maker: "Coinkite (Canadá)",
+    year: 2024,
+    price: 219,
+    currency: "USD",
+    type: "btc",
+    typeLabel: "Solo BTC",
+    description: "Coldcard con teclado QWERTY completo, escáner QR y pantalla más grande. Solo Bitcoin, doble secure element. Ideal para firmar PSBTs sin USB.",
+    specs: ["Teclado QWERTY", "Escáner QR integrado", "Solo Bitcoin", "Doble Secure Element", "Aire-gapped"],
+    buyUrl: "https://coldcard.com/q"
+  },
+  {
+    name: "Ledger Stax",
+    maker: "Ledger (Francia)",
+    year: 2024,
+    price: 399,
+    currency: "USD",
+    type: "web3",
+    typeLabel: "Web 3",
+    description: "El premium de Ledger, diseñado por Tony Fadell (creador del iPod). Pantalla E-Ink curva de 3.7'', carga inalámbrica Qi, NFC, Bluetooth.",
+    specs: ["Pantalla E-Ink curva 3.7''", "Carga inalámbrica Qi", "NFC + Bluetooth", "Diseño Tony Fadell", "Lock screen personalizable"],
+    buyUrl: "https://shop.ledger.com/products/ledger-stax"
+  },
+  {
+    name: "Jade Plus",
+    maker: "Blockstream",
+    year: 2025,
+    price: 147,
+    currency: "€",
+    type: "btc",
+    typeLabel: "Solo BTC",
+    description: "Versión premium del Jade original con secure element dedicado, pantalla mayor y mejor hardware. Mantiene filosofía open source.",
+    specs: ["Secure Element dedicado", "Open source", "Bitcoin + Liquid", "Pantalla mejorada", "USB-C"],
+    buyUrl: "https://store.blockstream.com/product/blockstream-jade-plus/"
+  },
+  {
+    name: "Portal",
+    maker: "TwentyTwo (Foundation)",
+    year: 2024,
+    price: 89,
+    currency: "€",
+    type: "btc",
+    typeLabel: "Solo BTC",
+    description: "Hardware wallet ultra-fina (tarjeta) con NFC. Solo Bitcoin, sin batería, alimentada por el móvil. Open source.",
+    specs: ["Form factor tarjeta", "NFC", "Solo Bitcoin", "Sin batería", "Open source"],
+    buyUrl: "https://twenty-two.xyz/"
+  }
+];
+
+// Chart bounds
+const X_MIN = 2019, X_MAX = 2026;
+const Y_MIN = 0, Y_MAX = 420;
+const PADDING = { top: 20, right: 40, bottom: 50, left: 60 };
+
+function drawGrid() {
+  const svg = document.getElementById('gridSvg');
+  const area = document.getElementById('chartArea');
+  const w = area.clientWidth;
+  const h = area.clientHeight;
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.innerHTML = '';
+
+  // Y-axis grid lines and labels
+  const yTicks = [0, 100, 200, 300, 400];
+  yTicks.forEach(yVal => {
+    const y = mapY(yVal, h);
+    svg.innerHTML += `<line class="grid-line" x1="${PADDING.left}" y1="${y}" x2="${w - PADDING.right}" y2="${y}"/>`;
+    svg.innerHTML += `<text class="axis-label" x="${PADDING.left - 10}" y="${y + 4}" text-anchor="end">${yVal}</text>`;
+  });
+
+  // X-axis grid lines and labels
+  for (let yr = X_MIN; yr <= X_MAX; yr++) {
+    const x = mapX(yr, w);
+    svg.innerHTML += `<line class="grid-line" x1="${x}" y1="${PADDING.top}" x2="${x}" y2="${h - PADDING.bottom}"/>`;
+    svg.innerHTML += `<text class="axis-label" x="${x}" y="${h - PADDING.bottom + 20}" text-anchor="middle">${yr}</text>`;
+  }
+
+  // Axis titles
+  svg.innerHTML += `<text class="axis-title" x="${PADDING.left - 45}" y="${PADDING.top + 4}">Precio</text>`;
+  svg.innerHTML += `<text class="axis-label" x="${PADDING.left - 45}" y="${PADDING.top + 20}">€/USD</text>`;
+  svg.innerHTML += `<text class="axis-title" x="${w - PADDING.right + 8}" y="${h - PADDING.bottom + 4}">Año</text>`;
+}
+
+function mapX(year, w) {
+  const range = w - PADDING.left - PADDING.right;
+  return PADDING.left + ((year - X_MIN) / (X_MAX - X_MIN)) * range;
+}
+function mapY(price, h) {
+  const range = h - PADDING.top - PADDING.bottom;
+  return (h - PADDING.bottom) - (price / Y_MAX) * range;
+}
+
+// Jitter to avoid overlapping dots at same year/price
+function jitterX(year, allWallets) {
+  const sameYear = allWallets.filter(w => w.year === year);
+  const idx = sameYear.findIndex(w => w === allWallets.find(x => x.year === year));
+  return year;
+}
+
+function plotWallets() {
+  const plot = document.getElementById('plotArea');
+  const area = document.getElementById('chartArea');
+  const w = area.clientWidth;
+  const h = area.clientHeight;
+  plot.style.left = '0';
+  plot.style.top = '0';
+  plot.style.width = w + 'px';
+  plot.style.height = h + 'px';
+  plot.innerHTML = '';
+
+  // Group by year for jittering
+  const byYear = {};
+  wallets.forEach(wt => {
+    if (!byYear[wt.year]) byYear[wt.year] = [];
+    byYear[wt.year].push(wt);
+  });
+
+  wallets.forEach((wt, i) => {
+    // Jitter horizontally if multiple in same year
+    const yearGroup = byYear[wt.year];
+    const idxInYear = yearGroup.indexOf(wt);
+    const jitterAmount = (yearGroup.length > 1) ? (idxInYear - (yearGroup.length - 1) / 2) * 0.18 : 0;
+    const xVal = wt.year + jitterAmount;
+
+    const x = mapX(xVal, w);
+    const y = mapY(wt.price, h);
+
+    // Dot
+    const dot = document.createElement('button');
+    dot.className = `wallet-dot ${wt.type}`;
+    dot.style.left = x + 'px';
+    dot.style.top = y + 'px';
+    dot.dataset.idx = i;
+    dot.setAttribute('aria-label', `${wt.name} - ${wt.price} ${wt.currency} - ${wt.year}`);
+    plot.appendChild(dot);
+
+    // Label — alternate placement above/below for readability
+    const labelOffset = (idxInYear % 2 === 0) ? -32 : 28;
+    const label = document.createElement('div');
+    label.className = 'wallet-label';
+    label.style.left = x + 'px';
+    label.style.top = (y + labelOffset) + 'px';
+    label.dataset.idx = i;
+    label.innerHTML = `<span class="name">${wt.name}</span><span class="price">${wt.price} ${wt.currency}</span>`;
+    plot.appendChild(label);
+  });
+
+  // Click handlers
+  document.querySelectorAll('.wallet-dot').forEach(dot => {
+    dot.addEventListener('click', (e) => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      openDetail(wallets[idx]);
+    });
+  });
+}
+
+// Detail modal
+function openDetail(wt) {
+  const overlay = document.getElementById('detailOverlay');
+  const content = document.getElementById('detailContent');
+
+  let typeColor = wt.type === 'btc' ? 'var(--btc)' : wt.type === 'web3' ? 'var(--web3)' : 'gold';
+  const dotClass = wt.type;
+
+  content.innerHTML = `
+    <div class="type-badge"><span class="dot ${dotClass}" style="width:8px;height:8px;border-radius:50%;display:inline-block;"></span>${wt.typeLabel}</div>
+    <h2>${wt.name}</h2>
+    <div class="maker">${wt.maker}</div>
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="label">Precio</div>
+        <div class="value price">${wt.price} ${wt.currency}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Año</div>
+        <div class="value">${wt.year}</div>
+      </div>
+    </div>
+    <div class="description">${wt.description}</div>
+    <div class="specs-list">
+      <h3>Características</h3>
+      <ul>${wt.specs.map(s => `<li>${s}</li>`).join('')}</ul>
+    </div>
+    <a href="${wt.buyUrl}" target="_blank" rel="noopener" class="buy-btn">Ver en sitio oficial →</a>
+  `;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('closeBtn').addEventListener('click', closeDetail);
+document.getElementById('detailOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'detailOverlay') closeDetail();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDetail();
+});
+
+// Filters
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    const filter = e.currentTarget.dataset.filter;
+
+    document.querySelectorAll('.wallet-dot').forEach(dot => {
+      const idx = parseInt(dot.dataset.idx);
+      const wt = wallets[idx];
+      if (filter === 'all' || wt.type === filter) {
+        dot.classList.remove('dimmed');
+      } else {
+        dot.classList.add('dimmed');
+      }
+    });
+    document.querySelectorAll('.wallet-label').forEach(lbl => {
+      const idx = parseInt(lbl.dataset.idx);
+      const wt = wallets[idx];
+      if (filter === 'all' || wt.type === filter) {
+        lbl.classList.remove('dimmed');
+      } else {
+        lbl.classList.add('dimmed');
+      }
+    });
+  });
+});
+
+// Render
+function render() {
+  drawGrid();
+  plotWallets();
+}
+render();
+window.addEventListener('resize', render);
+</script>
+</body>
+</html>
